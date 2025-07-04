@@ -29,7 +29,6 @@ jobs:
       - name: Compilar sitio Astro  
         # Ejecuta el script "build" definido en package.json para compilar tu sitio Astro
         run: npm run build
-
       - name: Subir artefacto del sitio  
         # Sube la carpeta "dist/" generada en la compilación como artefacto para posteriores análisis o descargas
         uses: actions/upload-artifact@v4
