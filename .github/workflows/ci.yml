@@ -10,25 +10,43 @@ jobs:
   build:  # Definición del job principal
     runs-on: ubuntu-latest  # Se ejecuta en un runner con Ubuntu
 
-    steps:
+    steps:  # Lista de pasos a ejecutar
       - name: Checkout código  
-        # Paso para clonar el repositorio en el runner
+        # Clona el repositorio en el runner
         uses: actions/checkout@v4
 
       - name: Configurar Node.js  
-        # Paso que instala la versión 22 de Node.js y configura la caché para npm
+        # Instala la versión 22 de Node.js sin configurar caché para npm, ya que usaremos pnpm
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'  # Utiliza npm para la gestión del caché
+
+      - name: Habilitar Corepack (para usar pnpm)  
+        # Activa Corepack, que facilita el uso de gestores de paquetes como pnpm
+        run: corepack enable
+
+      - name: Instalar pnpm  
+        # Instala pnpm versión 8 usando la acción oficial de pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Configurar caché de pnpm  
+        # Configura la caché para pnpm y acelera futuras instalaciones.
+        # Nota: Aquí se vuelve a configurar Node.js con caché para pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
 
       - name: Instalar dependencias  
-        # Se instalan las dependencias definidas en package.json usando npm
-        run: npm install
+        # Instala las dependencias definidas en package.json usando pnpm
+        run: pnpm install
 
       - name: Compilar sitio Astro  
-        # Ejecuta el script "build" definido en package.json para compilar tu sitio Astro
-        run: npm run build
+        # Ejecuta el script "build" definido en package.json para compilar el sitio Astro
+        run: pnpm run build
+
       - name: Subir artefacto del sitio  
         # Sube la carpeta "dist/" generada en la compilación como artefacto para posteriores análisis o descargas
         uses: actions/upload-artifact@v4
@@ -37,10 +55,10 @@ jobs:
           path: dist/
 
       - name: Escanear vulnerabilidades con NVD  
-        # Instala el escáner de vulnerabilidades de Python y lo ejecuta para analizar la versión de astro
+        # Instala el escáner de vulnerabilidades de Python y lo ejecuta para analizar la dependencia "astro"
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}  # Se pasa la API key desde los secrets del repositorio
         run: |
-          pip install cve-vulnerability-scanner                   # Instala la herramienta de escaneo
-          echo "astro,5.11.0" > deps.csv                          # Crea un archivo CSV con la dependencia "astro" y su versión
-          cve-vulnerability-scanner deps.csv -o reporte.md        # Ejecuta el escaneo y genera el reporte en reporte.md
+          pip install cve-vulnerability-scanner  # Instala la herramienta de escaneo
+          echo "astro,5.11.0" > deps.csv         # Crea un archivo CSV con la dependencia "astro" y su versión
+          cve-vulnerability-scanner deps.csv -o reporte.md  # Ejecuta el escaneo y genera el reporte
