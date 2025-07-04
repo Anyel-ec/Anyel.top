@@ -15,40 +15,28 @@ jobs:
         # Clona el repositorio en el runner
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js  
-        # Instala la versión 22 de Node.js sin configurar caché para npm, ya que usaremos pnpm
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Habilitar Corepack (para usar pnpm)  
-        # Activa Corepack, que facilita el uso de gestores de paquetes como pnpm
-        run: corepack enable
-
-      - name: Instalar pnpm  
-        # Instala pnpm versión 8 usando la acción oficial de pnpm
-        uses: pnpm/action-setup@v2
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
         with:
           version: 8
 
-      - name: Configurar caché de pnpm  
-        # Configura la caché para pnpm y acelera futuras instalaciones.
-        # Nota: Aquí se vuelve a configurar Node.js con caché para pnpm
+      # Instalar Node.js (ajusta versión si usas otra)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 20
           cache: 'pnpm'
 
-      - name: Instalar dependencias  
-        # Instala las dependencias definidas en package.json usando pnpm
-        run: pnpm install
+      # Instalar dependencias
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Compilar sitio Astro  
-        # Ejecuta el script "build" definido en package.json para compilar el sitio Astro
+      # Construir el sitio
+      - name: Build Astro site
         run: pnpm run build
 
-      - name: Subir artefacto del sitio  
-        # Sube la carpeta "dist/" generada en la compilación como artefacto para posteriores análisis o descargas
+      # Subir artefacto de build (opcional, por si lo necesitas para otro job)
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: astro-dist
