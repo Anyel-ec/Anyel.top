@@ -9,33 +9,43 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      RUNNER_TOOL_CACHE: /toolcache
 
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
+      - name: Check out Git repository
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
           cache: 'pnpm'
 
-      - name: Instalar dependencias con pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+          run_install: false
+          standalone: true
+          dest: ~/setup-pnpm
+
+      - name: Install dependencies with pnpm
         run: pnpm install --frozen-lockfile
 
       - name: Build Astro site
         run: pnpm run build
 
-      - name: Upload build artifact
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: astro-dist
           path: dist/
 
-      - name: Escanear vulnerabilidades con NVD
+      - name: Vulnerability Scan with NVD
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           pip install cve-vulnerability-scanner
           echo "astro,5.11.0" > deps.csv
-          cve-vulnerability-scanner deps.csv -o reporte.md
+          cve-vulnerability-scanner deps.csv -o report.md
