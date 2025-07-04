@@ -1,0 +1,44 @@
+name: Astro CI/CD + NVD Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Instalar pnpm
+        run: npm install -g pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install
+
+      - name: Compilar sitio Astro
+        run: pnpm run build
+
+      - name: Subir artefacto del sitio
+        uses: actions/upload-artifact@v4
+        with:
+          name: sitio-astro
+          path: dist/
+
+      - name: Escanear vulnerabilidades con NVD
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          pip install cve-vulnerability-scanner
+          echo "astro,${{ steps.get_version.outputs.version }}" > deps.csv
+          cve-vulnerability-scanner deps.csv -o reporte.md
