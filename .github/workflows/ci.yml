@@ -1,49 +1,54 @@
-name: Astro CI/CD + NVD Scan
+name: Astro CI/CD + NVD Scan  # Nombre del workflow que aparecerá en GitHub Actions
 
-on:
+on:  # Define los eventos que disparan el workflow
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build:  # Nombre del job principal
+    runs-on: ubuntu-latest  # El job se ejecuta en una máquina virtual Ubuntu
 
-    steps:
-      - name: Checkout código
+    steps:  # Lista de pasos (acciones) a ejecutar
+      - name: Checkout código  # Paso 1: Descargar el código del repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
+      - name: Configurar Node.js  # Paso 2: Instala Node.js versión 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Habilitar Corepack (para usar pnpm)  # Paso 3: Habilita corepack, que permite usar pnpm fácilmente
+        run: corepack enable
+
+      - name: Instalar pnpm  # Paso 4: Instala pnpm versión 8 usando la acción oficial
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Configurar caché de pnpm  # Paso 5: Habilita el caché de dependencias para pnpm y Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
 
-      - name: Habilitar Corepack (para usar pnpm)
-        run: corepack enable
-
-      - name: Instalar pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Instalar dependencias
+      - name: Instalar dependencias  # Paso 6: Instala las dependencias del proyecto usando pnpm
         run: pnpm install
 
-      - name: Compilar sitio Astro
+      - name: Compilar sitio Astro  # Paso 7: Compila el proyecto Astro (lo deja listo para producción)
         run: pnpm run build
 
-      - name: Subir artefacto del sitio
+      - name: Subir artefacto del sitio  # Paso 8: Sube la carpeta 'dist' resultante como artefacto del workflow
         uses: actions/upload-artifact@v4
         with:
           name: sitio-astro
           path: dist/
 
-      - name: Escanear vulnerabilidades con NVD
+      - name: Escanear vulnerabilidades con NVD  # Paso 9: Instala el escáner de vulnerabilidades y genera un reporte
         env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}  # Usa la API key como variable de entorno
         run: |
-          pip install cve-vulnerability-scanner
-          echo "astro,5.11.0" > deps.csv
-          cve-vulnerability-scanner deps.csv -o reporte.md
+          pip install cve-vulnerability-scanner                   # Instala el escáner de vulnerabilidades de Python
+          echo "astro,5.11.0" > deps.csv                          # Crea un archivo CSV con las dependencias a escanear
+          cve-vulnerability-scanner deps.csv -o reporte.md        # Ejecuta el escaneo y guarda el reporte en reporte.md
