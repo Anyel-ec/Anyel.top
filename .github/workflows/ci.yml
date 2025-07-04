@@ -1,54 +1,47 @@
-name: Astro CI/CD + NVD Scan  # Define el nombre del workflow para identificarlo en GitHub Actions
+name: Astro CI/CD + NVD Scan  # Nombre del workflow a visualizar en GitHub Actions
 
-on:  # Sección para definir los eventos que activan este workflow
+on:
   push:
-    branches: [ "main" ]  # Se activa cuando hay un push en la rama "main"
+    branches: [ "main" ]  # Se activa en push a la rama main
   pull_request:
-    branches: [ "main" ]  # Se activa cuando se crea o actualiza un pull request hacia la rama "main"
+    branches: [ "main" ]  # Se activa en pull requests a la rama main
 
 jobs:
-  build:  # Definición del job principal llamado "build"
-    runs-on: ubuntu-latest  # El job se ejecuta en una máquina virtual basada en Ubuntu
+  build:  # Definición del job principal
+    runs-on: ubuntu-latest  # Se ejecuta en un runner con Ubuntu
 
-    steps:  # Lista de pasos a ejecutar en el job
-      - name: Checkout código  # Paso 1: Clona el código del repositorio
+    steps:
+      - name: Checkout código  
+        # Paso para clonar el repositorio en el runner
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js  # Paso 2: Configura Node.js versión 22 en el entorno
+      - name: Configurar Node.js  
+        # Paso que instala la versión 22 de Node.js y configura la caché para npm
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'  # Utiliza npm para la gestión del caché
 
-      - name: Habilitar Corepack (para usar pnpm)  # Paso 3: Activa Corepack, que facilita el uso de gestores de paquetes como pnpm
-        run: corepack enable
+      - name: Instalar dependencias  
+        # Se instalan las dependencias definidas en package.json usando npm
+        run: npm install
 
-      - name: Instalar pnpm  # Paso 4: Instala pnpm versión 8 usando la acción oficial de pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+      - name: Compilar sitio Astro  
+        # Ejecuta el script "build" definido en package.json para compilar tu sitio Astro
+        run: npm run build
 
-      - name: Configurar caché de pnpm  # Paso 5: Configura la caché para pnpm (y Node.js) para acelerar instalaciones futuras
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-
-      - name: Instalar dependencias  # Paso 6: Ejecuta "pnpm install" para instalar las dependencias del proyecto según package.json
-        run: pnpm install
-
-      - name: Compilar sitio Astro  # Paso 7: Ejecuta "pnpm run build" para compilar el sitio Astro (lo prepara para producción)
-        run: pnpm run build
-
-      - name: Subir artefacto del sitio  # Paso 8: Sube la carpeta "dist/" generada (resultado de la compilación) como artefacto para descargarla posteriormente
+      - name: Subir artefacto del sitio  
+        # Sube la carpeta "dist/" generada en la compilación como artefacto para posteriores análisis o descargas
         uses: actions/upload-artifact@v4
         with:
-          name: sitio-astro
+          name: astro-dist
           path: dist/
 
-      - name: Escanear vulnerabilidades con NVD  # Paso 9: Instala un escáner de vulnerabilidades y genera un reporte
+      - name: Escanear vulnerabilidades con NVD  
+        # Instala el escáner de vulnerabilidades de Python y lo ejecuta para analizar la versión de astro
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}  # Se pasa la API key desde los secrets del repositorio
         run: |
-          pip install cve-vulnerability-scanner                   # Instala la herramienta de escaneo en Python
+          pip install cve-vulnerability-scanner                   # Instala la herramienta de escaneo
           echo "astro,5.11.0" > deps.csv                          # Crea un archivo CSV con la dependencia "astro" y su versión
-          cve-vulnerability-scanner deps.csv -o reporte.md        # Ejecuta el escaneo en el CSV y guarda el reporte en "reporte.md"
+          cve-vulnerability-scanner deps.csv -o reporte.md        # Ejecuta el escaneo y genera el reporte en reporte.md
