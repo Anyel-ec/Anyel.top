@@ -9,12 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      RUNNER_TOOL_CACHE: /toolcache
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -27,7 +25,6 @@ jobs:
         with:
           version: 8
           run_install: false
-          dest: ~/setup-pnpm
 
       - name: Install dependencies with pnpm
         run: pnpm install --frozen-lockfile
