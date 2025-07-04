@@ -20,6 +20,9 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
+      - name: Habilitar Corepack (para usar pnpm)
+        run: corepack enable
+
       - name: Instalar pnpm
         uses: pnpm/action-setup@v2
         with:
@@ -42,5 +45,5 @@ jobs:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           pip install cve-vulnerability-scanner
-          echo "astro,${{ steps.get_version.outputs.version }}" > deps.csv
+          echo "astro,5.11.0" > deps.csv
           cve-vulnerability-scanner deps.csv -o reporte.md
