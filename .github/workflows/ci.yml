@@ -1,56 +1,41 @@
-name: Astro CI/CD + NVD Scan  # Nombre del workflow a visualizar en GitHub Actions
+name: Astro CI/CD + NVD Scan
 
 on:
   push:
-    branches: [ "main" ]  # Se activa en push a la rama main
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]  # Se activa en pull requests a la rama main
+    branches: [ "main" ]
 
 jobs:
-  build:  # Definición del job principal
-    runs-on: ubuntu-latest  # Se ejecuta en un runner con Ubuntu
+  build:
+    runs-on: ubuntu-latest
 
-    steps:  # Lista de pasos a ejecutar
-      - name: Checkout código  
-        # Clona el repositorio en el runner
+    steps:
+      - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Setup Node.js  
-        # Instala la versión 20 de Node.js; no se configura cache: 'pnpm' aquí para evitar error al buscar el binario pnpm
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
 
-      - name: Enable Corepack  
-        # Habilita Corepack, que permite usar administradores de paquetes como pnpm
-        run: corepack enable
-
-      - name: Install pnpm  
-        # Instala pnpm versión 8 usando la acción oficial de pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-
-      - name: Install dependencies  
-        # Instala las dependencias definidas en package.json usando pnpm con el lockfile congelado
+      - name: Instalar dependencias con pnpm
         run: pnpm install --frozen-lockfile
 
-      - name: Build Astro site  
-        # Ejecuta el script "build" definido en package.json para compilar el sitio Astro
+      - name: Build Astro site
         run: pnpm run build
 
-      - name: Upload build artifact  
-        # Sube la carpeta "dist/" generada (resultado de la compilación) como artefacto
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: astro-dist
           path: dist/
 
-      - name: Escanear vulnerabilidades con NVD  
-        # Instala el escáner de vulnerabilidades de Python y lo ejecuta para analizar la dependencia "astro"
+      - name: Escanear vulnerabilidades con NVD
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
-          pip install cve-vulnerability-scanner  # Instala la herramienta de escaneo
-          echo "astro,5.11.0" > deps.csv         # Crea un archivo CSV con la dependencia y su versión
-          cve-vulnerability-scanner deps.csv -o reporte.md  # Ejecuta el escaneo y genera el reporte
+          pip install cve-vulnerability-scanner
+          echo "astro,5.11.0" > deps.csv
+          cve-vulnerability-scanner deps.csv -o reporte.md
