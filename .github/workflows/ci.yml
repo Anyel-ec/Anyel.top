@@ -15,28 +15,32 @@ jobs:
         # Clona el repositorio en el runner
         uses: actions/checkout@v4
 
-      - name: Install pnpm
+      - name: Setup Node.js  
+        # Instala la versión 20 de Node.js; no se configura cache: 'pnpm' aquí para evitar error al buscar el binario pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Enable Corepack  
+        # Habilita Corepack, que permite usar administradores de paquetes como pnpm
+        run: corepack enable
+
+      - name: Install pnpm  
+        # Instala pnpm versión 8 usando la acción oficial de pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 8
 
-      # Instalar Node.js (ajusta versión si usas otra)
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      # Instalar dependencias
-      - name: Install dependencies
+      - name: Install dependencies  
+        # Instala las dependencias definidas en package.json usando pnpm con el lockfile congelado
         run: pnpm install --frozen-lockfile
 
-      # Construir el sitio
-      - name: Build Astro site
+      - name: Build Astro site  
+        # Ejecuta el script "build" definido en package.json para compilar el sitio Astro
         run: pnpm run build
 
-      # Subir artefacto de build (opcional, por si lo necesitas para otro job)
-      - name: Upload build artifact
+      - name: Upload build artifact  
+        # Sube la carpeta "dist/" generada (resultado de la compilación) como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: astro-dist
@@ -45,8 +49,8 @@ jobs:
       - name: Escanear vulnerabilidades con NVD  
         # Instala el escáner de vulnerabilidades de Python y lo ejecuta para analizar la dependencia "astro"
         env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}  # Se pasa la API key desde los secrets del repositorio
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           pip install cve-vulnerability-scanner  # Instala la herramienta de escaneo
-          echo "astro,5.11.0" > deps.csv         # Crea un archivo CSV con la dependencia "astro" y su versión
+          echo "astro,5.11.0" > deps.csv         # Crea un archivo CSV con la dependencia y su versión
           cve-vulnerability-scanner deps.csv -o reporte.md  # Ejecuta el escaneo y genera el reporte
